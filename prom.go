@@ -55,7 +55,7 @@ type Prometheus struct {
 	Token       string
 	Ignored     pmapb
 	Engine      *gin.Engine
-	BucketsSize []float64
+	Buckets     []float64
 	Registry    *prometheus.Registry
 
 	RequestCounterMetricName  string
@@ -163,11 +163,11 @@ func Ignore(paths ...string) func(*Prometheus) {
 	}
 }
 
-// BucketSize is used to define the default bucket size when initializing with
+// Buckets is used to define the default bucket size when initializing with
 // New.
-func BucketSize(b []float64) func(*Prometheus) {
+func Buckets(b []float64) func(*Prometheus) {
 	return func(p *Prometheus) {
-		p.BucketsSize = b
+		p.Buckets = b
 	}
 }
 
@@ -298,7 +298,7 @@ func (p *Prometheus) register() {
 	p.reqDur = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: p.Namespace,
 		Subsystem: p.Subsystem,
-		Buckets:   p.BucketsSize,
+		Buckets:   p.Buckets,
 		Name:      p.RequestDurationMetricName,
 		Help:      "The HTTP request latency bucket.",
 	}, []string{"method", "path", "host"})
