@@ -179,14 +179,14 @@ func TestUse(t *testing.T) {
 	unregister(p)
 }
 
-func TestBucketSize(t *testing.T) {
+func TestBuckets(t *testing.T) {
 	p := New()
-	assert.Nil(t, p.BucketsSize, "namespace should be default")
+	assert.Nil(t, p.Buckets, "namespace should be default")
 	unregister(p)
 
 	bs := []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10}
-	p = New(BucketSize(bs))
-	assert.Equal(t, p.BucketsSize, bs, "should match")
+	p = New(Buckets(bs))
+	assert.Equal(t, p.Buckets, bs, "should match")
 	unregister(p)
 }
 
