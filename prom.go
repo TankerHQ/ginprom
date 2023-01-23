@@ -41,6 +41,14 @@ type pmapGauge struct {
 	values map[string]prometheus.GaugeVec
 }
 
+type NativeHistogramOpts struct {
+	BucketFactor     float64
+	ZeroThreshold    float64
+	MaxBucketNumber  uint32
+	MinResetDuration time.Duration
+	MaxZeroThreshold float64
+}
+
 // Prometheus contains the metrics gathered by the instance and its path.
 type Prometheus struct {
 	reqCnt       *prometheus.CounterVec
@@ -49,14 +57,15 @@ type Prometheus struct {
 
 	customGauges pmapGauge
 
-	MetricsPath string
-	Namespace   string
-	Subsystem   string
-	Token       string
-	Ignored     pmapb
-	Engine      *gin.Engine
-	Buckets     []float64
-	Registry    *prometheus.Registry
+	MetricsPath         string
+	Namespace           string
+	Subsystem           string
+	Token               string
+	Ignored             pmapb
+	Engine              *gin.Engine
+	Buckets             []float64
+	NativeHistogramOpts NativeHistogramOpts
+	Registry            *prometheus.Registry
 
 	RequestCounterMetricName  string
 	RequestDurationMetricName string
@@ -168,6 +177,12 @@ func Ignore(paths ...string) func(*Prometheus) {
 func Buckets(b []float64) func(*Prometheus) {
 	return func(p *Prometheus) {
 		p.Buckets = b
+	}
+}
+
+func NativeHistogram(nhopts NativeHistogramOpts) func(*Prometheus) {
+	return func(p *Prometheus) {
+		p.NativeHistogramOpts = nhopts
 	}
 }
 
@@ -295,13 +310,24 @@ func (p *Prometheus) register() {
 	)
 	registerer.MustRegister(p.reqCnt)
 
-	p.reqDur = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	histogramOpts := prometheus.HistogramOpts{
 		Namespace: p.Namespace,
 		Subsystem: p.Subsystem,
-		Buckets:   p.Buckets,
 		Name:      p.RequestDurationMetricName,
 		Help:      "The HTTP request latency bucket.",
-	}, []string{"method", "path", "host"})
+	}
+
+	if p.NativeHistogramOpts.BucketFactor != 0 {
+		histogramOpts.NativeHistogramBucketFactor = p.NativeHistogramOpts.BucketFactor
+		histogramOpts.NativeHistogramZeroThreshold = p.NativeHistogramOpts.ZeroThreshold
+		histogramOpts.NativeHistogramMaxBucketNumber = p.NativeHistogramOpts.MaxBucketNumber
+		histogramOpts.NativeHistogramMinResetDuration = p.NativeHistogramOpts.MinResetDuration
+		histogramOpts.NativeHistogramMaxZeroThreshold = p.NativeHistogramOpts.MaxZeroThreshold
+	} else {
+		histogramOpts.Buckets = p.Buckets
+	}
+
+	p.reqDur = prometheus.NewHistogramVec(histogramOpts, []string{"method", "path", "host"})
 	registerer.MustRegister(p.reqDur)
 
 	p.reqSz = prometheus.NewSummary(
