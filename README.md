@@ -196,7 +196,7 @@ expected durations.
 r := gin.New()
 p := ginprom.New(
 	ginprom.Engine(r),
-	ginprom.BucketSize([]float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10}),
+	ginprom.Buckets([]float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10}),
 )
 r.Use(p.Instrument())
 ```
